@@ -53,8 +53,12 @@ public class FacebookRouter: FederatedServiceRouter {
         return try self.fetchToken(from: request).flatMap { accessToken in
             request.logger.notice("Access token: \(accessToken)")
             let session = request.session
+            
             do {
-                try session.setAccessToken(accessToken)
+//                try session.setAccessToken(accessToken)
+                session.data["access_token"] = accessToken
+                request.logger.notice("Successfuly saved access token")
+                
                 try session.set("access_token_service", to: OAuthService.facebook)
                 return try self.callbackCompletion(request, accessToken).flatMap { response in
                     return response.encodeResponse(for: request)
