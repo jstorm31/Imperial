@@ -31,9 +31,6 @@ public class FacebookRouter: FederatedServiceRouter {
         } else {
             throw Abort(.badRequest, reason: "Missing 'code' key in URL query")
         }
-        
-        request.logger.notice("Received code: \(code)")
-        request.logger.notice("Client ID: \(self.tokens.clientID)")
 
         let body = FacebookCallbackBody(code: code, clientId: self.tokens.clientID, clientSecret: self.tokens.clientSecret, redirectURI: self.callbackURL)
 		let url = URI(string: self.accessTokenURL)
@@ -44,20 +41,17 @@ public class FacebookRouter: FederatedServiceRouter {
 				client.body = body.buffer
 			})
         }.flatMapThrowing { response in
-            request.logger.notice("Response: \(response.description)")
 			return try response.content.get(String.self, at: ["access_token"])
 		}
     }
     
     public func callback(_ request: Request) throws -> EventLoopFuture<Response> {
         return try self.fetchToken(from: request).flatMap { accessToken in
-            request.logger.notice("Access token: \(accessToken)")
             let session = request.session
             
             do {
-//                try session.setAccessToken(accessToken)
+                try session.setAccessToken(accessToken)
                 session.data["access_token"] = accessToken
-                request.logger.notice("Successfuly saved access token")
                 
                 try session.set("access_token_service", to: OAuthService.facebook)
                 return try self.callbackCompletion(request, accessToken).flatMap { response in
